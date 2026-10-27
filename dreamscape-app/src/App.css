@@ -762,6 +762,44 @@ textarea:focus-visible {
   transition: border-color 0.2s;
 }
 
+.memory-form input[type="file"] {
+  padding: 9px;
+}
+
+.memory-form input[type="file"]::file-selector-button {
+  margin-right: 12px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #e2d8ed;
+  cursor: pointer;
+}
+
+.photo-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.photo-preview img {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.photo-error {
+  margin: 10px 0 0;
+  color: #ff9ecb;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
 .memory-form input::placeholder,
 .memory-form textarea::placeholder {
   color: #887b98;

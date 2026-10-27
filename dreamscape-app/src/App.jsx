@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
@@ -16,16 +16,34 @@ function App() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [customMemories, setCustomMemories] = useState([]);
+  const uploadedImageUrls = useRef(new Set());
+
+  useEffect(() => {
+    const imageUrls = uploadedImageUrls.current;
+
+    return () => {
+      imageUrls.forEach((imageUrl) => {
+        URL.revokeObjectURL(imageUrl);
+      });
+    };
+  }, []);
 
   const allMemories = [...customMemories, ...memories];
 
-  function addMemory(event) {
+  function addMemory(event, photo) {
     event.preventDefault();
 
     if (!title.trim()) return;
 
+    const image = photo
+      ? URL.createObjectURL(photo)
+      : "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=900&q=85";
+
+    if (photo) uploadedImageUrls.current.add(image);
+
     setCustomMemories([
       {
+        id: crypto.randomUUID(),
         date: new Date()
           .toLocaleDateString("en-US", {
             month: "long",
@@ -35,8 +53,7 @@ function App() {
           .toUpperCase(),
         title,
         description: description || "A moment worth remembering.",
-        image:
-          "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=900&q=85",
+        image,
         rotate: "1deg",
         tag: "YOUR MEMORY",
       },
@@ -48,11 +65,11 @@ function App() {
     setShowForm(false);
   }
 
-  function toggleLike(index) {
+  function toggleLike(memoryId) {
     setLiked((previous) =>
-      previous.includes(index)
-        ? previous.filter((item) => item !== index)
-        : [...previous, index],
+      previous.includes(memoryId)
+        ? previous.filter((item) => item !== memoryId)
+        : [...previous, memoryId],
     );
   }
 
@@ -62,7 +79,7 @@ function App() {
       <Hero onShowNote={() => setShowNote(true)} />
       <MemoryGallery
         memories={allMemories}
-        liked={liked}
+        likedMemoryIds={liked}
         onAddMemory={() => setShowForm(true)}
         onLike={toggleLike}
       />

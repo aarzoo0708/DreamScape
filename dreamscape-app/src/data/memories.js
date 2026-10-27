@@ -1,5 +1,6 @@
 const memories = [
   {
+    id: "golden-hour",
     date: "JUNE 14, 2026",
     title: "Golden hour",
     description: "A little sunshine, a little laughter.",
@@ -9,6 +10,7 @@ const memories = [
     tag: "LITTLE MOMENTS",
   },
   {
+    id: "somewhere-new",
     date: "MAY 28, 2026",
     title: "Somewhere new",
     description: "Collecting places, not things.",
@@ -18,6 +20,7 @@ const memories = [
     tag: "ADVENTURES",
   },
   {
+    id: "soft-mornings",
     date: "APRIL 09, 2026",
     title: "Soft mornings",
     description: "Slow mornings and a peaceful mind.",

@@ -19,7 +19,9 @@ function MemoryCard({ memory, index, liked, onLike }) {
         <button
           className={`like-button ${liked ? "is-liked" : ""}`}
           onClick={onLike}
-          aria-label="Like memory"
+          type="button"
+          aria-label={liked ? `Unlike ${memory.title}` : `Like ${memory.title}`}
+          aria-pressed={liked}
         >
           <Heart size={18} fill={liked ? "currentColor" : "none"} />
         </button>

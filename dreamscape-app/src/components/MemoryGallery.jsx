@@ -1,7 +1,7 @@
 import { Sparkles, Plus } from "lucide-react";
 import MemoryCard from "./MemoryCard";
 
-function MemoryGallery({ memories, liked, onAddMemory, onLike }) {
+function MemoryGallery({ memories, likedMemoryIds, onAddMemory, onLike }) {
   return (
     <section className="memory-section" id="memories">
       <div className="section-heading">
@@ -23,11 +23,11 @@ function MemoryGallery({ memories, liked, onAddMemory, onLike }) {
       <div className="memory-grid">
         {memories.map((memory, index) => (
           <MemoryCard
-            key={`${memory.title}-${index}`}
+            key={memory.id}
             memory={memory}
             index={index}
-            liked={liked.includes(index)}
-            onLike={() => onLike(index)}
+            liked={likedMemoryIds.includes(memory.id)}
+            onLike={() => onLike(memory.id)}
           />
         ))}
       </div>
