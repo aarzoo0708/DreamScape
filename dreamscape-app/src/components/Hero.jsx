@@ -136,7 +136,7 @@ function Hero({ onShowNote, memories = [], isPageRevealed = true }) {
             </a>
           </div>
           <div className="hero-note-row">
-            <button className="text-button" onClick={onShowNote}>
+            <button type="button" className="text-button" onClick={onShowNote}>
               A little note for you <Heart size={16} />
             </button>
           </div>

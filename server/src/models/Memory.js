@@ -15,12 +15,20 @@ const memorySchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    imagePublicId: {
+      type: String,
+      trim: true,
+    },
     date: {
       type: Date,
     },
     mood: {
       type: String,
       trim: true,
+    },
+    isFavourite: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true },

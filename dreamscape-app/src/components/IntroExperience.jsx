@@ -27,6 +27,18 @@ function IntroExperience({ memories, onReveal, onComplete }) {
   }, [onComplete, onReveal]);
 
   useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.key === "Escape" && !started.current) {
+        event.preventDefault();
+        startEntry(true);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [startEntry]);
+
+  useEffect(() => {
     if (reducedMotion) {
       onReveal(true);
       onComplete();
@@ -48,7 +60,8 @@ function IntroExperience({ memories, onReveal, onComplete }) {
   return (
     <Motion.div
       className={`intro-experience${entering ? " is-entering" : ""}${skipped ? " is-skipped" : ""}`}
-      role="status"
+      role="dialog"
+      aria-modal="true"
       aria-label="Entering the DreamScape memory universe"
       initial={{ opacity: 1 }}
       animate={{ opacity: entering ? 0 : 1 }}
@@ -100,7 +113,7 @@ function IntroExperience({ memories, onReveal, onComplete }) {
         Every memory begins somewhere.
       </Motion.p>
 
-      <button className="intro-skip" onClick={() => startEntry(true)} disabled={entering}>
+      <button type="button" className="intro-skip" onClick={() => startEntry(true)} disabled={entering}>
         Skip intro <ArrowUpRight size={14} />
       </button>
     </Motion.div>

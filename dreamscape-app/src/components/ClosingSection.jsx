@@ -14,7 +14,7 @@ function ClosingSection({ onAddMemory }) {
         Take the pictures. Keep the letters. Remember how it felt. One day,
         these ordinary moments will be your extraordinary memories.
       </p>
-      <button className="primary-button" onClick={onAddMemory}>
+      <button type="button" className="primary-button" onClick={onAddMemory}>
         Save a little moment <Heart size={16} />
       </button>
     </section>

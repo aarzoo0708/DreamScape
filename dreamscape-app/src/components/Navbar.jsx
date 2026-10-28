@@ -1,7 +1,7 @@
 
 import { Plus, Sparkles } from "lucide-react";
 
-function Navbar({ onAddMemory }) {
+function Navbar({ onAddMemory, onShowFavourites }) {
   return (
     <nav className="navbar cinematic-navbar">
       <a className="brand" href="#home">
@@ -14,10 +14,12 @@ function Navbar({ onAddMemory }) {
 
       <div className="nav-links">
         <a href="#memories">Our memories</a>
+        <a href="#memories" onClick={onShowFavourites}>Favourites</a>
         <a href="#about">The little things</a>
       </div>
 
       <button
+        type="button"
         className="nav-button"
         onClick={onAddMemory}
       >

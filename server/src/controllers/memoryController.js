@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Memory from "../models/Memory.js";
+import { configureCloudinary, isCloudinaryConfigured } from "../config/cloudinary.js";
 
 class RequestError extends Error {
   constructor(status, message) {
@@ -30,13 +31,23 @@ function getMemoryInput(body, { partial = false } = {}) {
     input.title = body.title.trim();
   }
 
-  for (const field of ["description", "imageUrl", "mood"]) {
+  for (const field of ["description", "imageUrl", "imagePublicId", "mood"]) {
     if (Object.hasOwn(body, field)) {
       if (typeof body[field] !== "string") {
         throw new RequestError(400, `${field} must be a string.`);
       }
+      if (field === "imagePublicId" && body[field] && !/^[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*$/.test(body[field])) {
+        throw new RequestError(400, "imagePublicId is not a valid Cloudinary asset ID.");
+      }
       input[field] = body[field].trim();
     }
+  }
+
+  if (Object.hasOwn(body, "isFavourite")) {
+    if (typeof body.isFavourite !== "boolean") {
+      throw new RequestError(400, "isFavourite must be a boolean.");
+    }
+    input.isFavourite = body.isFavourite;
   }
 
   if (Object.hasOwn(body, "date")) {
@@ -101,28 +112,148 @@ export async function createMemory(request, response, next) {
 
 export async function updateMemory(request, response, next) {
   try {
+    const memoryId = getMemoryId(request.params.id);
+    const input = getMemoryInput(request.body, { partial: true });
+    const previousMemory = await Memory.findById(memoryId);
+    if (!previousMemory) {
+      return response.status(404).json({ success: false, message: "Memory not found." });
+    }
+
     const memory = await Memory.findByIdAndUpdate(
-      getMemoryId(request.params.id),
-      getMemoryInput(request.body, { partial: true }),
-      { new: true, runValidators: true },
+      memoryId,
+      input,
+      { returnDocument: "after", runValidators: true },
     );
     if (!memory) {
       return response.status(404).json({ success: false, message: "Memory not found." });
     }
-    return response.json({ success: true, message: "Memory updated.", data: memory });
+
+    let imageCleanupStatus = "not-needed";
+    const imageWasReplaced = Object.hasOwn(input, "imageUrl")
+      && input.imageUrl !== previousMemory.imageUrl;
+    const oldPublicId = previousMemory.imagePublicId;
+    const newPublicId = memory.imagePublicId;
+
+    if (imageWasReplaced && oldPublicId && oldPublicId !== newPublicId) {
+      if (!isCloudinaryConfigured()) {
+        imageCleanupStatus = "pending";
+      } else {
+        try {
+          const cloudinary = configureCloudinary();
+          const result = await cloudinary.uploader.destroy(oldPublicId, {
+            resource_type: "image",
+            invalidate: true,
+          });
+          imageCleanupStatus = result.result === "ok" || result.result === "not found"
+            ? (result.result === "ok" ? "deleted" : "missing")
+            : "pending";
+        } catch (error) {
+          console.error("Replaced Cloudinary image cleanup failed:", error.name || "DeleteError");
+          imageCleanupStatus = "pending";
+        }
+      }
+    } else if (imageWasReplaced && !oldPublicId && previousMemory.imageUrl) {
+      try {
+        imageCleanupStatus = new URL(previousMemory.imageUrl).hostname === "res.cloudinary.com"
+          ? "untracked"
+          : "not-needed";
+      } catch {
+        imageCleanupStatus = "not-needed";
+      }
+    }
+
+    const message = imageCleanupStatus === "pending"
+      ? "Memory updated. The previous photo could not be removed from Cloudinary and may remain there."
+      : imageCleanupStatus === "untracked"
+        ? "Memory updated. The previous Cloudinary photo may remain because its asset ID was not saved."
+        : "Memory updated.";
+    return response.json({
+      success: true,
+      message,
+      data: memory,
+      imageCleanupStatus,
+    });
   } catch (error) {
     return handleError(error, response, next);
   }
 }
 
 export async function deleteMemory(request, response, next) {
+  let imageStatus = "none";
   try {
-    const memory = await Memory.findByIdAndDelete(getMemoryId(request.params.id));
+    const memoryId = getMemoryId(request.params.id);
+    const memory = await Memory.findById(memoryId);
     if (!memory) {
       return response.status(404).json({ success: false, message: "Memory not found." });
     }
-    return response.json({ success: true, message: "Memory deleted.", data: memory });
+
+    const imageIsCloudinaryHosted = (() => {
+      if (!memory.imageUrl) return false;
+      try {
+        return new URL(memory.imageUrl).hostname === "res.cloudinary.com";
+      } catch {
+        return false;
+      }
+    })();
+
+    if (memory.imagePublicId) {
+      if (!isCloudinaryConfigured()) {
+        return response.status(503).json({
+          success: false,
+          message: "Cloudinary is unavailable, so the memory was kept. Try again when image storage is available.",
+        });
+      }
+
+      try {
+        const cloudinary = configureCloudinary();
+        const result = await cloudinary.uploader.destroy(memory.imagePublicId, {
+          resource_type: "image",
+          invalidate: true,
+        });
+        if (result.result !== "ok" && result.result !== "not found") {
+          throw new Error("Cloudinary did not confirm image deletion.");
+        }
+        imageStatus = result.result === "ok" ? "deleted" : "missing";
+      } catch (error) {
+        console.error("Cloudinary image deletion failed:", error.name || "DeleteError");
+        return response.status(502).json({
+          success: false,
+          message: "The photo could not be deleted, so the memory was kept. Please try again.",
+        });
+      }
+    } else if (imageIsCloudinaryHosted) {
+      imageStatus = "untracked";
+    }
+
+    const deletedMemory = await Memory.findByIdAndDelete(memoryId);
+    if (!deletedMemory) {
+      return response.status(404).json({
+        success: false,
+        message: imageStatus === "deleted"
+          ? "The photo was deleted, but the memory was already removed. Refresh the gallery."
+          : "Memory not found.",
+      });
+    }
+
+    const message = imageStatus === "deleted"
+      ? "Memory and its Cloudinary photo were deleted."
+      : imageStatus === "missing"
+        ? "Memory deleted. Its photo was already missing from Cloudinary."
+        : imageStatus === "untracked"
+          ? "Memory deleted. Its photo may remain in Cloudinary because no asset ID was stored."
+        : "Memory deleted.";
+    return response.json({ success: true, message, data: deletedMemory, imageStatus });
   } catch (error) {
+    if (imageStatus !== "none") {
+      return response.status(500).json({
+        success: false,
+        message: imageStatus === "deleted"
+          ? "The photo was deleted, but the memory record could not be removed. It is still visible; try deleting it again."
+          : imageStatus === "missing"
+            ? "The photo was already missing, but the memory could not be removed. It is still visible; try again."
+            : "The memory could not be removed. It is still visible; try again.",
+      });
+    }
     return handleError(error, response, next);
   }
 }
