@@ -1,9 +1,9 @@
-import { Heart } from "lucide-react";
+import { Heart, Sparkles } from "lucide-react";
 
 function ClosingSection({ onAddMemory }) {
   return (
     <section className="closing-section" id="about">
-      <div className="closing-sparkle">âœ³</div>
+      <div className="closing-sparkle"><Sparkles size={34} /></div>
       <div className="eyebrow">A GENTLE REMINDER</div>
       <h2>
         Life happens

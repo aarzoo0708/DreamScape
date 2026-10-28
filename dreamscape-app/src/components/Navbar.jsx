@@ -3,7 +3,7 @@ import { Plus, Sparkles } from "lucide-react";
 
 function Navbar({ onAddMemory }) {
   return (
-    <nav className="navbar">
+    <nav className="navbar cinematic-navbar">
       <a className="brand" href="#home">
         <span className="brand-icon">
           <Sparkles size={19} />

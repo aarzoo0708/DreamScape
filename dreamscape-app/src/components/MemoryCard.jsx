@@ -1,12 +1,29 @@
-import { motion } from "framer-motion";
+import { useRef } from "react";
+import {
+  motion as Motion,
+  useReducedMotion,
+  useScroll,
+  useTransform,
+} from "framer-motion";
 import { Heart } from "lucide-react";
 
 function MemoryCard({ memory, index, liked, onLike }) {
+  const cardRef = useRef(null);
+  const reducedMotion = useReducedMotion();
+  const { scrollYProgress } = useScroll({
+    target: cardRef,
+    offset: ["start end", "end start"],
+  });
+  const cardY = useTransform(scrollYProgress, [0, 0.5, 1], [18, 0, -18]);
+  const cardTilt = useTransform(scrollYProgress, [0, 0.5, 1], [1.2, 0, -1.2]);
+
   return (
-    <motion.article
+    <Motion.article
+      ref={cardRef}
       className="memory-card"
-      initial={{ opacity: 0, y: 25 }}
-      whileInView={{ opacity: 1, y: 0 }}
+      style={reducedMotion ? undefined : { y: cardY, rotateX: cardTilt }}
+      initial={reducedMotion ? false : { opacity: 0 }}
+      whileInView={reducedMotion ? undefined : { opacity: 1 }}
       viewport={{ once: true, amount: 0.2 }}
       transition={{ duration: 0.5, delay: (index % 3) * 0.12 }}
     >
@@ -32,7 +49,7 @@ function MemoryCard({ memory, index, liked, onLike }) {
         <h3>{memory.title}</h3>
         <p>{memory.description}</p>
       </div>
-    </motion.article>
+    </Motion.article>
   );
 }
 

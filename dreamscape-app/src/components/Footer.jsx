@@ -1,4 +1,4 @@
-import { Sparkles } from "lucide-react";
+import { Heart, Sparkles } from "lucide-react";
 
 function Footer() {
   return (
@@ -7,7 +7,7 @@ function Footer() {
         <Sparkles size={17} /> dreamscape<span className="brand-dot">.</span>
       </a>
       <span>A tiny universe, made just for memories.</span>
-      <span>MADE WITH â™¡</span>
+      <span>MADE WITH <Heart size={13} aria-label="love" /></span>
     </footer>
   );
 }

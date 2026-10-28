@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion as Motion } from "framer-motion";
 import { Heart, X } from "lucide-react";
 
 function MemoryForm({
@@ -67,7 +67,7 @@ function MemoryForm({
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <motion.form
+      <Motion.form
         className="memory-form"
         onSubmit={(event) => onSubmit(event, selectedPhoto)}
         initial={{ opacity: 0, y: 20 }}
@@ -145,7 +145,7 @@ function MemoryForm({
           Memories last only in this page session. Photos use temporary browser
           URLs and are not uploaded to a server.
         </p>
-      </motion.form>
+      </Motion.form>
     </div>
   );
 }

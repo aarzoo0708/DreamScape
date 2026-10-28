@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import "./App.css";
 import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
@@ -8,8 +8,12 @@ import Footer from "./components/Footer";
 import NoteModal from "./components/NoteModal";
 import MemoryForm from "./components/MemoryForm";
 import memories from "./data/memories.js";
+import IntroExperience from "./components/IntroExperience";
 
 function App() {
+  const [hasEntered, setHasEntered] = useState(false);
+  const [quickReveal, setQuickReveal] = useState(false);
+  const [introFinished, setIntroFinished] = useState(false);
   const [liked, setLiked] = useState([]);
   const [showNote, setShowNote] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -29,6 +33,11 @@ function App() {
   }, []);
 
   const allMemories = [...customMemories, ...memories];
+  const revealDreamscape = useCallback((skip = false) => {
+    setHasEntered(true);
+    if (skip) setQuickReveal(true);
+  }, []);
+  const finishIntro = useCallback(() => setIntroFinished(true), []);
 
   function addMemory(event, photo) {
     event.preventDefault();
@@ -75,16 +84,32 @@ function App() {
 
   return (
     <main>
-      <Navbar onAddMemory={() => setShowForm(true)} />
-      <Hero onShowNote={() => setShowNote(true)} />
-      <MemoryGallery
-        memories={allMemories}
-        likedMemoryIds={liked}
-        onAddMemory={() => setShowForm(true)}
-        onLike={toggleLike}
-      />
-      <ClosingSection onAddMemory={() => setShowForm(true)} />
-      <Footer />
+      <div
+        className={`dreamscape-page${hasEntered ? " is-revealed" : ""}${quickReveal ? " is-quick-reveal" : ""}`}
+        inert={!hasEntered}
+      >
+        <Navbar onAddMemory={() => setShowForm(true)} />
+        <Hero
+          onShowNote={() => setShowNote(true)}
+          memories={allMemories}
+          isPageRevealed={hasEntered}
+        />
+        <MemoryGallery
+          memories={allMemories}
+          likedMemoryIds={liked}
+          onAddMemory={() => setShowForm(true)}
+          onLike={toggleLike}
+        />
+        <ClosingSection onAddMemory={() => setShowForm(true)} />
+        <Footer />
+      </div>
+      {!introFinished && (
+        <IntroExperience
+          memories={allMemories}
+          onReveal={revealDreamscape}
+          onComplete={finishIntro}
+        />
+      )}
       {showNote && <NoteModal onClose={() => setShowNote(false)} />}
       {showForm && (
         <MemoryForm
