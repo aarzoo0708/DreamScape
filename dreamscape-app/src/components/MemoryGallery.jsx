@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Heart, Plus, Search, Sparkles, X } from "lucide-react";
+import { Clock3, Heart, LayoutGrid, Plus, Search, Sparkles, X } from "lucide-react";
 import MemoryCard from "./MemoryCard";
 
 function getDateKey(value) {
@@ -23,12 +23,16 @@ function MemoryGallery({
   showFavourites,
   onShowAllMemories,
   onShowFavourites,
+  albums = [],
+  selectedAlbum,
+  onAlbumChange,
 }) {
   const [search, setSearch] = useState("");
   const [selectedMood, setSelectedMood] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [sortOrder, setSortOrder] = useState("newest");
+  const [viewMode, setViewMode] = useState("grid");
 
   const moods = useMemo(() => [...new Set(
     memories.map((memory) => memory.mood?.trim()).filter(Boolean),
@@ -37,10 +41,14 @@ function MemoryGallery({
   const baseMemories = showFavourites
     ? memories.filter((memory) => memory.isFavourite)
     : memories;
+  const albumMemories = selectedAlbum
+    ? baseMemories.filter((memory) => (memory.album || "Everyday Moments") === selectedAlbum)
+    : baseMemories;
   const filteredMemories = useMemo(() => {
     const query = search.trim().toLocaleLowerCase();
-    const matches = baseMemories.filter((memory) => {
-      if (query && !`${memory.title || ""} ${memory.description || ""}`.toLocaleLowerCase().includes(query)) {
+    const matches = albumMemories.filter((memory) => {
+      const searchableText = [memory.title, memory.description, memory.location, memory.album, ...(memory.tags || [])].filter(Boolean).join(" ");
+      if (query && !searchableText.toLocaleLowerCase().includes(query)) {
         return false;
       }
       if (selectedMood && memory.mood?.trim() !== selectedMood) return false;
@@ -71,16 +79,17 @@ function MemoryGallery({
         ? firstDate.localeCompare(secondDate)
         : secondDate.localeCompare(firstDate);
     });
-  }, [baseMemories, search, selectedMood, startDate, endDate, sortOrder]);
+  }, [albumMemories, search, selectedMood, startDate, endDate, sortOrder]);
 
   const hasActiveFilters = Boolean(
-    search.trim() || selectedMood || startDate || endDate || sortOrder !== "newest",
+    search.trim() || selectedMood || selectedAlbum || startDate || endDate || sortOrder !== "newest",
   );
   const invalidDateRange = Boolean(startDate && endDate && startDate > endDate);
 
   function resetFilters() {
     setSearch("");
     setSelectedMood("");
+    onAlbumChange("");
     setStartDate("");
     setEndDate("");
     setSortOrder("newest");
@@ -156,6 +165,13 @@ function MemoryGallery({
 
         <div className="gallery-filter-controls">
           <label className="gallery-control">
+            <span>Album</span>
+            <select value={selectedAlbum} onChange={(event) => onAlbumChange(event.target.value)}>
+              <option value="">All albums</option>
+              {albums.map((album) => <option value={album} key={album}>{album}</option>)}
+            </select>
+          </label>
+          <label className="gallery-control">
             <span>Mood</span>
             <select value={selectedMood} onChange={(event) => setSelectedMood(event.target.value)}>
               <option value="">All moods</option>
@@ -187,14 +203,20 @@ function MemoryGallery({
       </div>
 
       {!isLoading && !error && (
-        <p className="gallery-result-count" aria-live="polite">
-          {invalidDateRange
-            ? "Choose a start date on or before the end date."
-            : `${filteredMemories.length} ${filteredMemories.length === 1 ? "memory" : "memories"}${hasActiveFilters ? " found" : ""}`}
-        </p>
+        <div className="gallery-result-toolbar">
+          <p className="gallery-result-count" aria-live="polite">
+            {invalidDateRange
+              ? "Choose a start date on or before the end date."
+              : `${filteredMemories.length} ${filteredMemories.length === 1 ? "memory" : "memories"}${hasActiveFilters ? " found" : ""}`}
+          </p>
+          <div className="gallery-view-toggle" role="group" aria-label="Memory layout">
+            <button type="button" className={viewMode === "grid" ? "is-active" : ""} aria-pressed={viewMode === "grid"} onClick={() => setViewMode("grid")} aria-label="Grid view"><LayoutGrid size={15} /></button>
+            <button type="button" className={viewMode === "timeline" ? "is-active" : ""} aria-pressed={viewMode === "timeline"} onClick={() => setViewMode("timeline")} aria-label="Timeline view"><Clock3 size={15} /></button>
+          </div>
+        </div>
       )}
 
-      <div className="memory-grid" aria-busy={isLoading}>
+      <div className={`memory-grid${viewMode === "timeline" ? " is-timeline" : ""}`} aria-busy={isLoading}>
         {galleryNotice && <p className="gallery-notice" role="status">{galleryNotice}</p>}
         {isLoading && <p className="gallery-state" role="status">Loading your memories…</p>}
         {!isLoading && error && (
@@ -211,6 +233,7 @@ function MemoryGallery({
             key={memory.id}
             memory={memory}
             index={index}
+            timelineMode={viewMode === "timeline"}
             liked={likedMemoryIds.includes(memory.id)}
             onLike={() => onLike(memory.id, memory.isSaved)}
             canEdit={memory.isSaved}

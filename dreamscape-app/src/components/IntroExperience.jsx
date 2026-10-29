@@ -88,14 +88,13 @@ function IntroExperience({ memories, onReveal, onComplete }) {
             <Motion.div
               className={`intro-polaroid intro-polaroid-${index}`}
               key={memory.id}
-              initial={{ opacity: 0, scale: 0.72, z: -80, rotate: rotations[index] - 8 }}
+              initial={{ opacity: 0, y: 8, rotate: rotations[index] - 3 }}
               animate={{
-                opacity: [0, 1, 1, 0.84],
-                scale: [0.72, 1, 1.04, 1.14],
-                z: [-80, 0, 30, 120],
-                rotate: [rotations[index] - 8, rotations[index], rotations[index] + 2, rotations[index] + 8],
+                opacity: [0, 1, 1, 1],
+                y: [8, 0, -2, 0],
+                rotate: [rotations[index] - 3, rotations[index], rotations[index] + 1, rotations[index]],
               }}
-              transition={{ duration: 3.5, delay: 1.35 + index * 0.16, ease: "easeInOut" }}
+              transition={{ duration: 2.4, delay: 0.45 + index * 0.12, ease: "easeInOut" }}
             >
               <img src={memory.image} alt="" />
               <span>{memory.title}</span>
@@ -104,11 +103,22 @@ function IntroExperience({ memories, onReveal, onComplete }) {
         </div>
       </div>
 
+      <Motion.div
+        className="intro-content"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.8, duration: 0.8 }}
+      >
+        <span className="intro-label">YOUR LITTLE UNIVERSE</span>
+        <h1>A place for everything you&apos;ll never want to forget.</h1>
+        <p>Save your favourite moments, write down your thoughts, and keep the little pieces of your life close to your heart.</p>
+      </Motion.div>
+
       <Motion.p
         className="intro-message"
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.65, duration: 0.8 }}
+        transition={{ delay: 1.35, duration: 0.8 }}
       >
         Every memory begins somewhere.
       </Motion.p>

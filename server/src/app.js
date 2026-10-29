@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import healthRoutes from "./routes/healthRoutes.js";
 import imageUploadRoutes from "./routes/imageUploadRoutes.js";
 import memoryRoutes from "./routes/memoryRoutes.js";
+import personalRoutes from "./routes/personalRoutes.js";
 
 function safeDevelopmentErrorMessage(error) {
   return String(error.message || "Unknown error")
@@ -46,6 +47,7 @@ function createApp() {
   app.use("/api", healthRoutes);
   app.use("/api", imageUploadRoutes);
   app.use("/api/memories", memoryRoutes);
+  app.use("/api/personal", personalRoutes);
 
   app.use((request, response) => {
     response.status(404).json({

@@ -8,29 +8,23 @@ import {
 import { ArrowDown, ArrowRight, Heart } from "lucide-react";
 
 function HeroPhoto({ memory, index, scrollProgress, reducedMotion }) {
-  const direction = index === 0 ? -1 : index === 1 ? 1 : 0.35;
-  const depth = index === 1 ? 1.2 : index === 0 ? 0.8 : 0.65;
+  const direction = index === 0 ? -1 : index === 1 ? 1 : 0;
   const startingRotation = Number.parseFloat(memory.rotate) || 0;
-  const x = useTransform(scrollProgress, [0, 0.5, 1], [0, direction * 22, direction * 85]);
-  const y = useTransform(
-    scrollProgress,
-    [0, 0.5, 1],
-    [0, -20 * depth, -88 * depth],
-  );
-  const z = useTransform(scrollProgress, [0, 0.5, 1], [0, 35 * depth, -170 * depth]);
+  const x = useTransform(scrollProgress, [0, 1], [0, direction * 10]);
+  const y = useTransform(scrollProgress, [0, 1], [0, -10]);
   const rotate = useTransform(
     scrollProgress,
-    [0, 0.5, 1],
-    [startingRotation, startingRotation + direction * 2, startingRotation + direction * 6],
+    [0, 1],
+    [startingRotation, startingRotation + direction * 1.5],
   );
-  const scale = useTransform(scrollProgress, [0, 0.5, 1], [1, 1.025, 0.94]);
-  const opacity = useTransform(scrollProgress, [0, 0.7, 1], [1, 1, 0.36]);
+  const scale = useTransform(scrollProgress, [0, 1], [1, 1.01]);
+  const opacity = useTransform(scrollProgress, [0, 1], [1, 0.88]);
 
   return (
     <Motion.div
       className={`polaroid hero-photo hero-photo-${index}`}
       style={
-        reducedMotion ? undefined : { x, y, z, rotate, scale, opacity }
+        reducedMotion ? undefined : { x, y, rotate, scale, opacity }
       }
     >
       <div className="hero-photo-image-placeholder" aria-hidden="true" />
@@ -46,7 +40,7 @@ function HeroPhoto({ memory, index, scrollProgress, reducedMotion }) {
   );
 }
 
-function Hero({ onShowNote, memories = [], isPageRevealed = true }) {
+function Hero({ onShowNote, memories = [], isPageRevealed = true, favouriteQuote = "" }) {
   const heroRef = useRef(null);
   const reducedMotion = useReducedMotion();
   const { scrollYProgress } = useScroll({
@@ -71,7 +65,7 @@ function Hero({ onShowNote, memories = [], isPageRevealed = true }) {
     [0.42, 0.78, 0.68, 0.18],
   );
   const cueOpacity = useTransform(scrollYProgress, [0, 0.75, 0.96, 1], [1, 1, 0.2, 0]);
-  const photos = memories.slice(0, 3);
+  const photos = memories.slice(0, 2);
 
   return (
     <section className="hero cinematic-hero" id="home" ref={heroRef}>
@@ -129,6 +123,7 @@ function Hero({ onShowNote, memories = [], isPageRevealed = true }) {
             A home for your favourite memories, the words you never want to
             forget, and the little things that make life beautiful.
           </p>
+          {favouriteQuote && <blockquote className="hero-quote">“{favouriteQuote}”</blockquote>}
 
           <div className="hero-actions">
             <a href="#memories" className="primary-button cinematic-enter">
@@ -158,7 +153,7 @@ function Hero({ onShowNote, memories = [], isPageRevealed = true }) {
           <div className="hero-photo-stage">
             <div className="orbit orbit-one" />
             <div className="orbit orbit-two" />
-            {photos.slice(0, 2).map((memory, index) => (
+            {photos.map((memory, index) => (
               <HeroPhoto
                 key={memory.id}
                 memory={memory}
@@ -167,16 +162,6 @@ function Hero({ onShowNote, memories = [], isPageRevealed = true }) {
                 reducedMotion={reducedMotion}
               />
             ))}
-            {photos[2] && (
-              <div className="hero-center-photo-layer" aria-hidden="true">
-                <HeroPhoto
-                  memory={photos[2]}
-                  index={2}
-                  scrollProgress={scrollYProgress}
-                  reducedMotion={reducedMotion}
-                />
-              </div>
-            )}
             <div className="floating-note">
               <span className="note-heart"><Heart size={23} /></span>
               <div>

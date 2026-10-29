@@ -9,12 +9,13 @@ import {
 import { Heart, Pencil, Trash2, X } from "lucide-react";
 import { trapModalTab } from "../utils/trapModalTab";
 
-function MemoryCard({ memory, index, liked, onLike, canEdit, onEdit, canDelete, onDelete }) {
+function MemoryCard({ memory, index, liked, onLike, canEdit, onEdit, canDelete, onDelete, timelineMode = false }) {
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [isUpdatingFavourite, setIsUpdatingFavourite] = useState(false);
   const [favouriteError, setFavouriteError] = useState("");
+  const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const favouriteRequestLock = useRef(false);
   const deleteRequestLock = useRef(false);
   const deleteTriggerRef = useRef(null);
@@ -28,6 +29,13 @@ function MemoryCard({ memory, index, liked, onLike, canEdit, onEdit, canDelete, 
   });
   const cardY = useTransform(scrollYProgress, [0, 0.5, 1], [18, 0, -18]);
   const cardTilt = useTransform(scrollYProgress, [0, 0.5, 1], [1.2, 0, -1.2]);
+  const photos = memory.photos?.length
+    ? memory.photos
+    : memory.imageUrl
+      ? [{ imageUrl: memory.imageUrl, imagePublicId: memory.imagePublicId }]
+      : [];
+
+  useEffect(() => setActivePhotoIndex(0), [memory.id, photos.length]);
 
   function closeDeleteConfirmation() {
     if (deleteRequestLock.current) return;
@@ -58,7 +66,7 @@ function MemoryCard({ memory, index, liked, onLike, canEdit, onEdit, canDelete, 
   return (
     <Motion.article
       ref={cardRef}
-      className="memory-card"
+      className={`memory-card${timelineMode ? " is-timeline" : ""}`}
       style={reducedMotion ? undefined : { y: cardY, rotateX: cardTilt }}
       initial={reducedMotion ? false : { opacity: 0 }}
       whileInView={reducedMotion ? undefined : { opacity: 1 }}
@@ -69,7 +77,7 @@ function MemoryCard({ memory, index, liked, onLike, canEdit, onEdit, canDelete, 
         className="memory-image-wrap"
         style={{ "--card-rotation": memory.rotate }}
       >
-        <img src={memory.image} alt={memory.title} />
+        <img src={photos[activePhotoIndex]?.imageUrl || memory.image} alt={memory.title} />
         <span className="memory-tag">{memory.tag}</span>
         {canEdit && (
           <button
@@ -131,10 +139,43 @@ function MemoryCard({ memory, index, liked, onLike, canEdit, onEdit, canDelete, 
         </button>
       </div>
 
+      {photos.length > 1 && (
+        <div className="memory-photo-thumbnails" aria-label={`${photos.length} photos for ${memory.title}`}>
+          {photos.map((photo, photoIndex) => (
+            <button
+              type="button"
+              key={`${photo.imagePublicId || photo.imageUrl}-${photoIndex}`}
+              className={photoIndex === activePhotoIndex ? "is-active" : ""}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setActivePhotoIndex(photoIndex);
+              }}
+              aria-label={`Show photo ${photoIndex + 1} of ${photos.length} for ${memory.title}`}
+              aria-pressed={photoIndex === activePhotoIndex}
+            >
+              <img src={photo.imageUrl} alt="" />
+            </button>
+          ))}
+          <span>{activePhotoIndex + 1} / {photos.length}</span>
+        </div>
+      )}
+
       <div className="memory-info">
         <span className="memory-date">{memory.date}</span>
         <h3>{memory.title}</h3>
         <p>{memory.description}</p>
+        {(memory.location || memory.album) && (
+          <div className="memory-location-album">
+            {memory.album && <span>{memory.album}</span>}
+            {memory.location && <span>{memory.location}</span>}
+          </div>
+        )}
+        {memory.tags?.length > 0 && (
+          <div className="memory-tags" aria-label="Memory tags">
+            {memory.tags.map((tag) => <span key={tag}>#{tag}</span>)}
+          </div>
+        )}
         {favouriteError && <p className="favorite-error" role="alert">{favouriteError}</p>}
       </div>
       {showDeleteConfirmation && createPortal(

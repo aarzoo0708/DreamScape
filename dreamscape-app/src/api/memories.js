@@ -4,7 +4,7 @@ function getDiagnosticPath(path) {
   return path.replace(/\/[a-f\d]{24}(?=\/|$)/gi, "/:id");
 }
 
-async function request(path, options) {
+export async function apiRequest(path, options) {
   const method = options?.method || "GET";
   let response;
   try {
@@ -54,7 +54,7 @@ function requireMatchingMemory(result, requestedId, action) {
 }
 
 export async function getMemories() {
-  const result = await request("/memories");
+  const result = await apiRequest("/memories");
   if (!Array.isArray(result.data)) {
     throw new Error("The Memories API returned an invalid gallery response. Please refresh and try again.");
   }
@@ -62,7 +62,7 @@ export async function getMemories() {
 }
 
 export async function createMemory(memory) {
-  const result = await request("/memories", {
+  const result = await apiRequest("/memories", {
     method: "POST",
     body: JSON.stringify(memory),
   });
@@ -74,7 +74,7 @@ export async function createMemory(memory) {
 
 export async function updateMemory(id, memory) {
   const memoryId = requireMongoId(id);
-  const result = await request(`/memories/${encodeURIComponent(memoryId)}`, {
+  const result = await apiRequest(`/memories/${encodeURIComponent(memoryId)}`, {
     method: "PUT",
     body: JSON.stringify(memory),
   });
@@ -128,7 +128,7 @@ export function uploadMemoryPhoto(photo, onProgress = () => {}) {
 
 export async function deleteMemory(id) {
   const memoryId = requireMongoId(id);
-  const result = await request(`/memories/${encodeURIComponent(memoryId)}`, { method: "DELETE" });
+  const result = await apiRequest(`/memories/${encodeURIComponent(memoryId)}`, { method: "DELETE" });
   requireMatchingMemory(result, memoryId, "deletion");
   return result;
 }

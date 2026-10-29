@@ -8,10 +8,17 @@ function MemoryForm({
   description,
   mood,
   date,
+  album,
+  location,
+  tags,
+  albums = [],
   onTitleChange,
   onDescriptionChange,
   onMoodChange,
   onDateChange,
+  onAlbumChange,
+  onLocationChange,
+  onTagsChange,
   onSubmit,
   onClose,
   error,
@@ -19,19 +26,18 @@ function MemoryForm({
   uploadProgress,
   mode = "add",
   currentImageUrl = "",
+  currentPhotos = [],
 }) {
-  const [selectedPhoto, setSelectedPhoto] = useState(null);
-  const [photoPreviewUrl, setPhotoPreviewUrl] = useState("");
+  const [selectedPhotos, setSelectedPhotos] = useState([]);
+  const [photoPreviewUrls, setPhotoPreviewUrls] = useState([]);
   const [photoError, setPhotoError] = useState("");
   const fileInputRef = useRef(null);
   const dialogRef = useRef(null);
-  const previewUrlRef = useRef("");
+  const previewUrlRef = useRef([]);
 
   useEffect(() => {
     return () => {
-      if (previewUrlRef.current) {
-        URL.revokeObjectURL(previewUrlRef.current);
-      }
+      previewUrlRef.current.forEach((url) => URL.revokeObjectURL(url));
     };
   }, []);
 
@@ -57,44 +63,48 @@ function MemoryForm({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isSaving, onClose]);
 
-  function clearSelectedPhoto() {
-    if (previewUrlRef.current) {
-      URL.revokeObjectURL(previewUrlRef.current);
-      previewUrlRef.current = "";
-    }
-
-    setSelectedPhoto(null);
-    setPhotoPreviewUrl("");
+  function clearSelectedPhotos() {
+    previewUrlRef.current.forEach((url) => URL.revokeObjectURL(url));
+    previewUrlRef.current = [];
+    setSelectedPhotos([]);
+    setPhotoPreviewUrls([]);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   function handlePhotoChange(event) {
-    const photo = event.target.files?.[0];
-    if (!photo) return;
+    const photos = [...(event.target.files || [])];
+    if (!photos.length) return;
+
+    const savedPhotoCount = currentPhotos.length || (currentImageUrl ? 1 : 0);
+    if (savedPhotoCount + photos.length > 12) {
+      clearSelectedPhotos();
+      setPhotoError("A memory can have up to 12 photos. Remove a selection or choose fewer files.");
+      return;
+    }
 
     const supportedTypes = ["image/jpeg", "image/png", "image/webp"];
     const supportedExtensions = ["jpg", "jpeg", "png", "webp"];
-    const extension = photo.name.split(".").pop()?.toLowerCase();
-    const hasSupportedType = supportedTypes.includes(photo.type);
-    const hasSupportedExtension = supportedExtensions.includes(extension);
-
-    if (!hasSupportedType && !(photo.type === "" && hasSupportedExtension)) {
-      clearSelectedPhoto();
-      setPhotoError("Choose a JPEG, PNG, or WebP image.");
-      return;
+    for (const photo of photos) {
+      const extension = photo.name.split(".").pop()?.toLowerCase();
+      const hasSupportedType = supportedTypes.includes(photo.type);
+      const hasSupportedExtension = supportedExtensions.includes(extension);
+      if (!hasSupportedType && !(photo.type === "" && hasSupportedExtension)) {
+        clearSelectedPhotos();
+        setPhotoError("Choose JPEG, PNG, or WebP images.");
+        return;
+      }
+      if (photo.size > 5 * 1024 * 1024) {
+        clearSelectedPhotos();
+        setPhotoError("Each image must be 5 MB or smaller.");
+        return;
+      }
     }
 
-    if (photo.size > 5 * 1024 * 1024) {
-      clearSelectedPhoto();
-      setPhotoError("Maximum image size is 5 MB.");
-      return;
-    }
-
-    clearSelectedPhoto();
-    const previewUrl = URL.createObjectURL(photo);
-    previewUrlRef.current = previewUrl;
-    setSelectedPhoto(photo);
-    setPhotoPreviewUrl(previewUrl);
+    clearSelectedPhotos();
+    const previewUrls = photos.map((photo) => URL.createObjectURL(photo));
+    previewUrlRef.current = previewUrls;
+    setSelectedPhotos(photos);
+    setPhotoPreviewUrls(previewUrls);
     setPhotoError("");
   }
 
@@ -106,7 +116,7 @@ function MemoryForm({
         role="dialog"
         aria-modal="true"
         aria-labelledby="memory-form-title"
-        onSubmit={(event) => onSubmit(event, selectedPhoto)}
+        onSubmit={(event) => onSubmit(event, selectedPhotos)}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         onClick={(event) => event.stopPropagation()}
@@ -156,6 +166,17 @@ function MemoryForm({
           disabled={isSaving}
         />
 
+        <label htmlFor="memory-album">Album</label>
+        <select id="memory-album" value={album} onChange={(event) => onAlbumChange(event.target.value)} disabled={isSaving}>
+          {albums.map((albumName) => <option key={albumName} value={albumName}>{albumName}</option>)}
+        </select>
+
+        <label htmlFor="memory-location">Location (optional)</label>
+        <input id="memory-location" value={location} maxLength={120} onChange={(event) => onLocationChange(event.target.value)} placeholder="A place worth remembering" disabled={isSaving} />
+
+        <label htmlFor="memory-tags">Tags (optional)</label>
+        <input id="memory-tags" value={tags} maxLength={800} onChange={(event) => onTagsChange(event.target.value)} placeholder="sunset, weekend, celebration" disabled={isSaving} />
+
         <label htmlFor="memory-date">Memory date</label>
         <input
           id="memory-date"
@@ -166,11 +187,12 @@ function MemoryForm({
           required
         />
 
-        <label htmlFor="memory-photo">Choose a photo (optional)</label>
+        <label htmlFor="memory-photo">Add photos (optional)</label>
         <input
           ref={fileInputRef}
           id="memory-photo"
           type="file"
+          multiple
           disabled={isSaving}
           accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
           onChange={handlePhotoChange}
@@ -183,37 +205,32 @@ function MemoryForm({
         )}
         {!photoError && (
           <p className="form-footnote" id="photo-help">
-            JPEG, PNG, or WebP. Maximum file size: 5 MB.
+          JPEG, PNG, or WebP. Up to 12 photos per memory, 5 MB each.
           </p>
         )}
-        {photoPreviewUrl && (
-          <div className="photo-preview">
-            <img src={photoPreviewUrl} alt="Preview of selected memory" />
-            <button
-              type="button"
-              className="outline-button"
-              onClick={clearSelectedPhoto}
-              disabled={isSaving}
-            >
-              Remove photo
-            </button>
+        {(currentPhotos.length > 0 || currentImageUrl) && (
+          <div className="memory-photo-preview-grid" aria-label="Photos currently saved to this memory">
+            {(currentPhotos.length ? currentPhotos : [{ imageUrl: currentImageUrl }]).map((photo, index) => (
+              <img key={`${photo.imagePublicId || photo.imageUrl}-${index}`} src={photo.imageUrl} alt={`Saved memory photo ${index + 1}`} />
+            ))}
+            <span className="form-footnote">Saved photos</span>
           </div>
         )}
-        {!photoPreviewUrl && currentImageUrl && (
-          <div className="photo-preview current-memory-photo">
-            <img src={currentImageUrl} alt="Current memory photo" />
-            <span className="form-footnote">Current photo</span>
+        {photoPreviewUrls.length > 0 && (
+          <div className="memory-photo-preview-grid" aria-label="Selected photo previews">
+            {photoPreviewUrls.map((url, index) => <img key={url} src={url} alt={`Selected photo preview ${index + 1}`} />)}
+            <button type="button" className="outline-button" onClick={clearSelectedPhotos} disabled={isSaving}>Clear selected photos</button>
           </div>
         )}
-        {!photoPreviewUrl && mode === "edit" && !currentImageUrl && (
+        {!currentPhotos.length && !currentImageUrl && mode === "edit" && (
           <p className="form-footnote">No photo is saved for this memory. The gallery is showing its default image.</p>
         )}
 
         {error && <p className="photo-error" role="alert">{error}</p>}
 
-        {isSaving && selectedPhoto && (
+        {isSaving && selectedPhotos.length > 0 && (
           <p className="form-footnote" role="status">
-            Uploading photo... {uploadProgress}%
+            Uploading photos… {uploadProgress}%
           </p>
         )}
         <button type="submit" className="primary-button submit-button" disabled={isSaving}>
@@ -222,8 +239,8 @@ function MemoryForm({
 
         <p className="form-footnote">
           {mode === "edit"
-            ? "Choose a new photo only if you want to replace the current one. Otherwise, your saved photo will stay as it is."
-            : "Your memory and selected photo are saved to the Memories API and Cloudinary."}
+            ? "Add more photos at any time. Your existing photos stay in this memory."
+            : "Your memory and selected photos are saved to your archive and Cloudinary."}
         </p>
       </Motion.form>
     </div>
